@@ -55,11 +55,14 @@ actors' StateGraphs).
   `accumulate-damage`) — **landed**. Penalty contact **Coulomb friction**
   (`contact/plane-traction` / `tangential-velocity` / `forces-with-friction`) — **landed**.
   Linear **kinematic hardening** (`material/axial-update-kinematic`, Prager back stress →
-  Bauschinger effect for cyclic crush reversal) and the general **3-D combined
+  Bauschinger effect for cyclic crush reversal; **dispatched from `axial-update`** so a
+  truss can use `:kinematic` end-to-end) and the general **3-D combined
   isotropic+kinematic** J2 return (`stress-update-combined-3d`, deviatoric back-stress
-  tensor; reduces to isotropic J2 at H_kin=0 and 3-D kinematic at H_iso=0) — **landed**.
-  Still to come: deformable node-to-surface (master-segment) contact, and wiring
-  damage/erosion into the element internal-force assembly.
+  tensor; reduces to isotropic J2 at H_kin=0 and 3-D kinematic at H_iso=0) — **landed**,
+  now **dispatched from `stress-update-3d`** so hex elements / the integrator can use
+  `:combined` end-to-end (back stress threads through the hex mat-state). Still to come:
+  deformable node-to-surface (master-segment) contact, and wiring damage/erosion into
+  the element internal-force assembly.
 - **S2 — structural elements.** Hourglass **energy metering** for the 1-pt hex
   (`hex-force` now returns `:hg-energy = ½ k_hg Σα q_α²`, verified ~0 under uniform
   strain and excited by a pure hourglass mode — the under-stabilization diagnostic) —

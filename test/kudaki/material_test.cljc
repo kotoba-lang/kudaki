@@ -61,6 +61,16 @@
       (is (rel? dep ep 1e-9))
       (is (rel? (+ sy0 (* H ep)) (Math/abs stress) 1e-9)))))
 
+(deftest axial-update-dispatches-kinematic
+  (testing "axial-update routes :kinematic to the Bauschinger model (so a truss can
+            use it, not just direct calls)"
+    (let [mat {:type :kinematic :E 200e9 :yield 250e6 :hardening 5e9}
+          via    (mat/axial-update mat 0.0 0.005 {})
+          direct (mat/axial-update-kinematic mat 0.0 0.005 {})]
+      (is (= (:stress via) (:stress direct)) "dispatched result equals the direct call")
+      (is (= (:back-stress (:state via)) (:back-stress (:state direct))) "back stress matches")
+      (is (not (zero? (:back-stress (:state via)))) "back stress accumulated"))))
+
 (deftest kinematic-hardening-bauschinger
   (testing "linear kinematic hardening shifts the yield surface (Bauschinger effect)"
     (let [E 200e9, sy0 250e6, Hk 10e9
@@ -86,6 +96,17 @@
       (testing "reverse yield magnitude is below the forward peak (the Bauschinger asymmetry)"
         (let [s-rev (- s1 (* 2.0 sy0))]                        ; β − σy0
           (is (< (Math/abs s-rev) s1)))))))
+
+(deftest stress-update-3d-dispatches-combined
+  (testing "stress-update-3d routes :combined to the combined iso+kinematic return
+            (so elements/integrator can use it, not just direct calls)"
+    (let [mat {:type :combined :E 200e9 :nu 0.3 :yield 250e6 :h-iso 1e9 :h-kin 4e9}
+          deps [0.01 0.0 0.0 0.0 0.0 0.0]
+          via   (mat/stress-update-3d mat la/zero6 deps {})
+          direct (mat/stress-update-combined-3d mat la/zero6 deps {})]
+      (is (= (:stress via) (:stress direct)) "dispatched result equals the direct call")
+      (is (= (:eq-plastic-strain (:state via)) (:eq-plastic-strain (:state direct))))
+      (is (pos? (la/tnorm (:back-stress (:state via)))) "back stress was threaded through"))))
 
 (deftest combined-hardening-3d-limits
   (let [E 200e9, nu 0.3, sy0 250e6, mu (:mu (mat/lame E nu))
@@ -180,6 +201,15 @@
         (is (close? 0.0 (mat/johnson-cook-flow-stress jc-cu 0.1 0.0 1356.0) 1.0))
         (is (< (mat/johnson-cook-flow-stress jc-cu 0.1 0.0 800.0)
                (mat/johnson-cook-flow-stress jc-cu 0.1 0.0 293.0)))))))
+
+(deftest jc-3d-below-yield-is-elastic
+  (testing "a small strain increment keeps the JC return on the elastic side
+            (f≤0): no plastic strain, no plastic work — the elastic branch"
+    (let [deps [1e-5 0.0 0.0 0.0 0.0 0.0]               ; σ̄ stays well under A=90 MPa
+          r (mat/stress-update-3d jc-cu la/zero6 deps {:dt 1.0e-6 :temperature 293.0})]
+      (is (< (la/von-mises (:stress r)) (:A jc-cu)) "trial stays under the yield stress")
+      (is (== 0.0 (:plastic-work r)) "no plastic work dissipated")
+      (is (== 0.0 (double (or (:eq-plastic-strain (:state r)) 0.0))) "no plastic strain"))))
 
 (deftest jc-3d-thermal-softening
   (testing "the 3-D JC return lands on a lower flow stress at elevated temperature"

@@ -15,6 +15,14 @@
     (is (close? 0.02  (c/plane-gap floor [1.0 0.02 3.0]) 1e-12))
     (is (close? -0.01 (c/plane-gap floor [1.0 -0.01 3.0]) 1e-12))))
 
+(deftest contact-threshold-boundary
+  (testing "the penalty switches exactly at gap=0: a node ON the plane carries no
+            force; an infinitesimal penetration carries a force along +n̂"
+    (is (= [0.0 0.0 0.0] (c/plane-force floor [1.0 0.0 3.0])) "gap=0 → no force (open)")
+    (let [f (c/plane-force floor [0.0 -1e-9 0.0])]
+      (is (pos? (f 1)) "gap<0 → restoring force along +n̂")
+      (is (< (la/norm f) 1.0) "and it is tiny for a tiny penetration"))))
+
 (deftest normal-penalty-spring
   (testing "separated ⇒ no force"
     (is (= [0.0 0.0 0.0] (c/plane-force floor [0.0 0.1 0.0]))))

@@ -58,7 +58,7 @@
 ;; 3-D constitutive update (elastic + J2 radial return)
 ;; ---------------------------------------------------------------------------
 
-(declare stress-update-jc-3d)
+(declare stress-update-jc-3d stress-update-combined-3d)
 
 (defn stress-update-3d
   "Advance the 3-D stress one step. `mat` is
@@ -77,8 +77,9 @@
        deviator  s ← s (σ̄ᵗ−3μΔλ)/σ̄ᵗ, leave the pressure, and grow ε̄p by Δλ.
     Plastic work increment ≈ σ̄_mid · Δλ feeds the energy ledger's dissipation."
   [mat sig deps state]
-  (if (= (:type mat) :johnson-cook)
-    (stress-update-jc-3d mat sig deps state)
+  (case (:type mat)
+    :johnson-cook (stress-update-jc-3d mat sig deps state)
+    :combined     (stress-update-combined-3d mat sig deps state)   ; iso+kinematic 3-D
    (let [{:keys [E nu]} mat
         cE   (lame E nu)
         mu   (:mu cE)
@@ -256,16 +257,22 @@
 ;; 1-D constitutive update (truss / rod axial stress)
 ;; ---------------------------------------------------------------------------
 
+(declare axial-update-kinematic)
+
 (defn axial-update
   "Advance the uniaxial (rod) stress one step. A truss carries a single normal
   stress, so J2 collapses to the classic 1-D return: yield when |σ| exceeds the
   current flow stress, then split the trial overshoot between elastic and
   hardening compliance, Δεp = (|σᵗ|−σy)/(E+H).
 
-  `mat` {:type :elastic|:j2 :E [:yield :hardening]}, `state`
-  {:eq-plastic-strain ε̄p}. Returns {:stress σ :state state' :plastic-work Δwₚ}."
+  `mat` {:type :elastic|:j2|:kinematic :E [:yield :hardening]}, `state`
+  {:eq-plastic-strain ε̄p}. Returns {:stress σ :state state' :plastic-work Δwₚ}.
+  `:kinematic` routes to `axial-update-kinematic` so a truss can use the Bauschinger
+  model end-to-end (the 1-D mirror of `stress-update-3d`'s `:combined` dispatch)."
   [mat sig deps state]
-  (let [E (:E mat)
+  (if (= (:type mat) :kinematic)
+    (axial-update-kinematic mat sig deps state)
+   (let [E (:E mat)
         sigT (+ sig (* E deps))]
     (if (not= (:type mat) :j2)
       {:stress sigT :state state :plastic-work 0.0}
@@ -281,7 +288,7 @@
                 snew (- sigT (* E dep sgn))]
             {:stress snew
              :state  (assoc state :eq-plastic-strain (+ ep dep))
-             :plastic-work (* (Math/abs snew) dep)}))))))
+             :plastic-work (* (Math/abs snew) dep)})))))))
 
 (defn axial-update-kinematic
   "1-D axial update with LINEAR KINEMATIC hardening (Prager). The yield surface
