@@ -45,6 +45,18 @@
                                 (* 3.0 (+ (* xy xy) (* yz yz) (* zx zx)))))]
       (is (close? formula (la/von-mises s) 1e-6)))))
 
+(deftest normalize-zero-length-guard
+  (testing "normalize of a degenerate (zero-length) vector returns zero, not NaN —
+            a coincident-node bar axis must not blow up the step"
+    (let [u (la/normalize [0.0 0.0 0.0])]
+      (is (= [0.0 0.0 0.0] u))
+      (is (every? #(not (Double/isNaN %)) u)))
+    (testing "a real vector normalizes to unit length in its own direction"
+      (let [u (la/normalize [0.0 3.0 4.0])]
+        (is (close? 1.0 (la/norm u) 1e-12))
+        (is (close? 0.6 (u 1) 1e-12))
+        (is (close? 0.8 (u 2) 1e-12))))))
+
 (deftest cross-product-algebra
   (testing "cross is anti-commutative and orthogonal to both operands"
     (let [a [1.0 2.0 3.0] b [-2.0 0.5 4.0]
