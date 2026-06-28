@@ -50,6 +50,21 @@
         (is (< (Math/abs (+ (get-in (:fint r0) [1 0]) (get-in (:fint r1) [1 0])))
                (* 1e-9 N)))))))
 
+(deftest truss-kinematic-reachable
+  (testing "a truss with :kinematic material yields and accumulates back stress —
+            the truss → axial-update → kinematic path works end-to-end"
+    (let [model {:nodes {0 [0.0 0.0 0.0] 1 [1.0 0.0 0.0]}
+                 :elements [{:type :truss :nodes [0 1] :mat :m :section {:area 1e-4}}]
+                 :materials {:m {:type :kinematic :E 200e9 :yield 250e6 :hardening 5e9
+                                 :density 7800.0}}}
+          el0 (first (:elements model))
+          d 0.003
+          r (el/truss-force model el0 {0 [0.0 0.0 0.0] 1 [(+ 1.0 d) 0.0 0.0]}
+                            {0 [0.0 0.0 0.0] 1 [d 0.0 0.0]} (el/init-state el0))
+          ms (:mat-state (:state r))]
+      (is (pos? (:eq-plastic-strain ms)) "plastic strain accumulated")
+      (is (not (zero? (:back-stress ms))) "kinematic back stress accumulated in the truss"))))
+
 (deftest truss-threads-hardening-across-steps
   (testing "a truss yielded over two steps accumulates plastic strain and hardens —
             regression for the mat-state threading bug (ep reset to nil each step before)"
@@ -158,6 +173,24 @@
       (is (pos? (:plastic-work r)) "plastic work was dissipated")
       (testing "the stress sits on the grown yield surface σ̄ = σy0 + H·ε̄p"
         (is (rel? (+ sy0 (* H ep)) (la/von-mises (:stress (:state r))) 1e-4))))))
+
+(deftest hex-combined-hardening-reachable
+  (testing "a hex with a :combined material yields through internal-force — the
+            element → stress-update-3d → combined path now works end-to-end"
+    (let [E 200e9, nu 0.3
+          model (assoc-in (unit-cube-model E nu) [:materials :m]
+                          {:type :combined :E E :nu nu :yield 250e6
+                           :h-iso 1e9 :h-kin 4e9 :density 7800.0})
+          el0 (first (:elements model))
+          eps 0.01
+          field (fn [[x _ _]] [(* eps x) 0.0 0.0])
+          dpos (into {} (map (fn [id] [id (field (mesh/coord model id))]) (range 8)))
+          pos  (into {} (map (fn [id] [id (la/v+ (mesh/coord model id) (dpos id))]) (range 8)))
+          r (el/hex-force model el0 pos dpos (el/init-state el0))
+          ms (:mat-state (:state r))]
+      (is (pos? (:eq-plastic-strain ms)) "plastic strain accumulated")
+      (is (pos? (:plastic-work r)) "plastic work dissipated")
+      (is (pos? (la/tnorm (:back-stress ms))) "kinematic back stress accumulated in the hex"))))
 
 (deftest hex-hourglass-energy-metering
   (let [E 200e9, nu 0.3
