@@ -1,0 +1,14 @@
+{:paths ["src"]
+ ;; kudaki-clj is a ZERO-third-party-dep numerical kernel. Every namespace is
+ ;; .cljc so the solver runs unchanged on JVM / SCI / ClojureScript / GraalVM /
+ ;; kotoba-clj (Clojure-on-WASM). No BLAS, no native solver — the linear algebra
+ ;; and time integration are pure Clojure over double arrays / persistent maps.
+ :deps {}
+ :aliases
+ {;; clojure -M:run  → Taylor bar impact + elastic wave demos to stdout
+  :run {:main-opts ["-m" "kudaki.demo"]}
+  :test {:extra-paths ["test"]
+         :extra-deps {io.github.cognitect-labs/test-runner
+                      {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+         :main-opts ["-m" "cognitect.test-runner"]
+         :exec-fn cognitect.test-runner.api/test}}}
