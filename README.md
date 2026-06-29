@@ -1,5 +1,7 @@
 # kudaki-clj (砕き)
 
+[![CI](https://github.com/kotoba-lang/kudaki/actions/workflows/ci.yml/badge.svg)](https://github.com/kotoba-lang/kudaki/actions/workflows/ci.yml)
+
 A clean-room **explicit nonlinear structural dynamics** kernel in portable Clojure —
 the LS-DYNA-class half of the simulation stack. Every namespace is `.cljc`, designed
 for **Clojure-on-WASM hosts** (SCI, ClojureScript, GraalVM, kotoba-clj) as well as the
