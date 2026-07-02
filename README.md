@@ -76,5 +76,5 @@ for the staged roadmap. **Landed so far (45 tests / 185 assertions, all green):*
 
 ```bash
 clojure -M:run      # Taylor bar + elastic wave demos
-clojure -X:test     # verification suite (energy balance, wave speed, J2 return-map)
+clojure -M:test     # verification suite (energy balance, wave speed, J2 return-map)
 ```
