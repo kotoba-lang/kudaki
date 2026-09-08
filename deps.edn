@@ -3,7 +3,12 @@
  ;; .cljc so the solver runs unchanged on JVM / SCI / ClojureScript / GraalVM /
  ;; kotoba-clj (Clojure-on-WASM). No BLAS, no native solver — the linear algebra
  ;; and time integration are pure Clojure over double arrays / persistent maps.
- :deps {}
+ :deps {
+        ;; kotoba.lang.text, not clojure.string. Pinned as an explicit floor:
+        ;; tools.deps takes the NEWEST sha it is shown, so without a floor here
+        ;; this repo silently rides whatever a sibling happens to name.
+        io.github.kotoba-lang/text {:git/sha "73bdb13ae7a3d004b44bca08be03a3191157a38f"}
+       }
  :aliases
  {;; clojure -M:run  → Taylor bar impact + elastic wave demos to stdout
   :run {:main-opts ["-m" "kudaki.demo"]}
