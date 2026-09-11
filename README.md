@@ -75,6 +75,6 @@ for the staged roadmap. **Landed so far (45 tests / 185 assertions, all green):*
   statics (S3), `.k` deck coverage (S4).
 
 ```bash
-clojure -M:run      # Taylor bar + elastic wave demos
-clojure -M:test     # verification suite (energy balance, wave speed, J2 return-map)
+kbb -M:run      # Taylor bar + elastic wave demos
+kbb -M:test     # verification suite (energy balance, wave speed, J2 return-map)
 ```

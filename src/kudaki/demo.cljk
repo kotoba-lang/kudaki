@@ -1,6 +1,6 @@
 (ns kudaki.demo
   "Two canonical explicit-dynamics verifications, runnable from the command line
-  (`clojure -M:run`):
+  (`kbb -M:run`):
 
     1. 1-D ELASTIC WAVE — a free bar of truss elements given an end velocity
        pulse. The compression front should travel at the bar (dilatational) wave
